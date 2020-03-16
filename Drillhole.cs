@@ -1,4 +1,5 @@
 
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -66,12 +67,17 @@ public class Import
     }
 }
 
-
 public class Plot
 {
-
     public static void InitializeAndPlotGraph(WellData myWell, string pointOfView, int rangeX, int rangeY, string filePath)
     {
+        int[] adjustedWellPointX, adjustedWellPointZ, adjustedWellPointY;
+        for (int i = 0; i < myWell.WellPointX.Count; i = i + 1)
+        {
+            myWell.WellPointX[i] = MeterToFeetTransmitor(myWell.WellPointX[i]);
+            myWell.WellPointY[i] = MeterToFeetTransmitor(myWell.WellPointY[i]);
+            myWell.WellPointZ[i] = MeterToFeetTransmitor(myWell.WellPointZ[i]);
+        }
         double maxX = myWell.WellPointX.Max();
         double maxY = myWell.WellPointY.Max();
         double maxZ = myWell.WellPointZ.Max();
@@ -79,13 +85,10 @@ public class Plot
         double minX = myWell.WellPointX.Min();
         double minY = myWell.WellPointY.Min();
         double minZ = myWell.WellPointZ.Min();
-
-        int[] adjustedWellPointX, adjustedWellPointZ, adjustedWellPointY;
-
         switch (pointOfView)
         {
             //XZ
-            case "FrontView":
+            case "FrontViewXZ":
                 adjustedWellPointX = ResizePointToFitPlot(myWell.WellPointX, rangeX, minX, maxX);
                 adjustedWellPointZ = ResizePointToFitPlot(myWell.WellPointZ, rangeY, minZ, maxZ);
                 myWell.WellTrajectoryGraph = PlotWellTrajectory(adjustedWellPointX, adjustedWellPointZ, myWell.WellPointX, myWell.WellPointY, myWell.WellPointZ, rangeX, rangeY);
@@ -93,7 +96,7 @@ public class Plot
                 Output.PrintFileAsTxt(filePath, myWell.WellTrajectoryGraph);
                 break;
             //yz
-            case "EndView":
+            case "EndViewYZ":
                 adjustedWellPointY = ResizePointToFitPlot(myWell.WellPointY, rangeX, minY, maxY);
                 adjustedWellPointZ = ResizePointToFitPlot(myWell.WellPointZ, rangeY, minZ, maxZ);
                 myWell.WellTrajectoryGraph = PlotWellTrajectory(adjustedWellPointY, adjustedWellPointZ, myWell.WellPointX, myWell.WellPointY, myWell.WellPointZ, rangeX, rangeY);
@@ -101,7 +104,7 @@ public class Plot
                 Output.PrintFileAsTxt(filePath, myWell.WellTrajectoryGraph);
                 break;
             //xy
-            case "VerticleView":
+            case "VerticleViewXY":
                 adjustedWellPointX = ResizePointToFitPlot(myWell.WellPointX, rangeX, minX, maxX);
                 adjustedWellPointY = ResizePointToFitPlot(myWell.WellPointY, rangeY, minY, maxY);
                 myWell.WellTrajectoryGraph = PlotWellTrajectory(adjustedWellPointX, adjustedWellPointY, myWell.WellPointX, myWell.WellPointY, myWell.WellPointZ, rangeX, rangeY);
@@ -111,84 +114,66 @@ public class Plot
         }
     }
 
+    public static double MeterToFeetTransmitor(double meter)
+    {
+        return meter * 3.2808;
+    }
+
     public static int[] ResizePointToFitPlot(List<double> originInput, int range, double minValue, double maxValue)
     {
         int spaceForAxis = 2;
-        double zoom = (maxValue - minValue) / (double)range;
-        int[] resizedPoint = originInput.Select(v => (int)Math.Round((v - minValue) / zoom + spaceForAxis)).ToArray();
+        double delta = maxValue - minValue;
+        double zoom = (double)range / delta;
+        int[] resizedPoint = originInput.Select(v => (int)Math.Round((v - minValue) * zoom + spaceForAxis)).ToArray();
+
         return resizedPoint;
     }
 
-    //IGNORE THIS FOR NOW 
-    /*
-        public static string[,] PlotAixs(string[,] graph, string axis1, string axis2, int spaceForAxis)
-        {
-            graph[0, 2] = axis1;
-            graph[0, 4] = ">";
-            graph[2, 0] = axis1;
-            graph[4, 0] = "v";
-
-            graph[spaceForAxis, spaceForAxis + 2] = axis2;
-            for (int i = 0; i < graph.GetLength(0); i = i + 1)
-            {
-
-                if (graph[i, 0] == null)
-                {
-                    graph[i, 0] = @"|";
-                }
-
-            }
-            for (int j = spaceForAxis; j < graph.GetLength(1); j = j + 1)
-            {
-                if (graph[0, j] == null)
-                {
-                    graph[0, j] = @"-";
-                }
-            }
-            return graph;
-        }
-        public static int[] FindOriginalPoint(int minValueX, int maxValueX, int maxValueY, int minValueY, int rangeX, int rangeY, int spaceForAxis)
-        {
-            int[] originalPoint = new int[2];
-            double zoom1 = (maxValueX - minValueX) / (double)rangeX;
-            double zoom2 = (maxValueY - minValueY) / (double)rangeY;
-            originalPoint[0] = (int)Math.Round((double)minValueX / zoom1) + spaceForAxis;
-            originalPoint[1] = (int)Math.Round((double)minValueY / zoom2) + spaceForAxis;
-            return originalPoint;
-
-        }
-
-    */
 
     public static string[,] PlotWellTrajectory(int[] myX, int[] myY, List<double> coordinateX, List<double> coordinateY, List<double> coordinateZ, int rangeX, int rangeY)
     {
-        int reservedSpace = 80;
+        int reservedSpace = 300;
         string[,] graph = new string[rangeY + reservedSpace, rangeX + reservedSpace];
-        graph[myY[0], myX[0]] = @"+";
+        graph[myY[0], myX[0]] = @"=";
         string coordinate = "(" + coordinateX[0] + "," + coordinateY[0] + "," + coordinateZ[0] + ")";
-        int indexOfCoordinateY = myY[0];
-        int indexOfCoordinateX = myX[0] + 1;
+        int indexOfCoordinateY = myY[0] + 1;
+        int indexOfCoordinateX = myX[0];
+
         foreach (char item in coordinate)
         {
             graph[indexOfCoordinateY, indexOfCoordinateX] = item.ToString();
             indexOfCoordinateX = indexOfCoordinateX + 1;
         }
-        for (int i = 1; i < myY.Length; i = i + 1)
+        for (int i = 1; i < myY.Length - 1; i = i + 1)
         {
             int indexX = myX[i];
             int indexY = myY[i];
-            graph[indexY, indexX] = "+";
+            if (graph[indexY, indexX] == null)
+            {
+                graph[indexY, indexX] = "+";
+            }
             graph = ConnectingWellPoint(graph, myX[i - 1], myY[i - 1], indexX, indexY);
 
             coordinate = "(" + coordinateX[i] + "," + coordinateY[i] + "," + coordinateZ[i] + ")";
-            indexOfCoordinateY = indexY;
-            indexOfCoordinateX = indexX + 1;
+            indexOfCoordinateY = indexY + 1;
+            indexOfCoordinateX = indexX;
             foreach (char item in coordinate)
             {
                 Console.WriteLine(item);
                 graph[indexOfCoordinateY, indexOfCoordinateX] = item.ToString();
                 indexOfCoordinateX = indexOfCoordinateX + 1;
             }
+        }
+
+        graph[myY[myY.Length - 1], myX[myY.Length - 1]] = @"#";
+        graph = ConnectingWellPoint(graph, myX[myX.Length - 2], myY[myY.Length - 2], myX[myX.Length - 1], myY[myY.Length - 1]);
+        coordinate = "(" + coordinateX[myY.Length - 1] + "," + coordinateY[myY.Length - 1] + "," + coordinateZ[myY.Length - 1] + ")";
+        indexOfCoordinateY = myY[myY.Length - 1] + 1;
+        indexOfCoordinateX = myX[myY.Length - 1];
+        foreach (char item in coordinate)
+        {
+            graph[indexOfCoordinateY, indexOfCoordinateX] = item.ToString();
+            indexOfCoordinateX = indexOfCoordinateX + 1;
         }
         return graph;
     }
@@ -328,12 +313,10 @@ public class Program
 {
     public static void Main()
     {
-
-        string[] pointOfView = new string[] { "FrontView", "EndView", "VerticleView" };
+        string[] pointOfView = new string[] { "FrontViewXZ", "EndViewYZ", "VerticleViewXY" };
         for (int i = 5; i < 6; i = i + 1)
         {
             string importFilePath = @"G:\HW5\HW5\\" + i + ".csv";
-
             WellData myWellData = Import.ReadFile(importFilePath);
             foreach (string point in pointOfView)
             {
@@ -343,6 +326,7 @@ public class Program
         }
     }
 }
+
 
 
 
