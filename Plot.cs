@@ -186,7 +186,7 @@ public class Plot
                 updateIndex = CalculateIndexThroughSlope(slope, i - indexY, indexX);
                 if (graph[i, updateIndex] == null)
                 {
-                    graph[i, updateIndex] = ChooseSymbol(slope);
+                    graph[i, updateIndex] = ChooseSymbol(1 / slope);
                 }
             }
 
@@ -201,24 +201,48 @@ public class Plot
 
     public static string ChooseSymbol(double slope)
     {
-        const double pi = System.Math.PI;
 
-        if (Math.Tan(170 * pi / 180) <= slope && slope < Math.Tan(80 * pi / 180))
+        double tangent10Degree = Math.Tan(DegreeToRadian(10));
+        double tangent80Degree = Math.Tan(DegreeToRadian(80));
+        double tangent100Degree = Math.Tan(DegreeToRadian(100));
+        double tangent170Degree = Math.Tan(DegreeToRadian(170));
+
+        if (slope > 0)
         {
-            return @"\";
-        }
-        else if (Math.Tan(100 * pi / 180) <= slope && slope < Math.Tan(170 * pi / 180))
-        {
-            return @"/";
-        }
-        else if (Math.Tan(170 * pi / 180) <= slope && slope <= Math.Tan(10 * pi / 180))
-        {
-            return @"|";
+            if (slope > tangent10Degree && slope < tangent80Degree)
+            {
+                return @"\";
+            }
+            else if (slope >= tangent80Degree)
+            {
+                return @"|";
+            }
+            else
+            {
+                return @"-";
+            }
         }
         else
         {
-            return @"-";
+            if (slope > tangent100Degree && slope < tangent170Degree)
+            {
+                return @"/";
+            }
+            else if (slope >= tangent170Degree)
+            {
+                return @"-";
+            }
+            else
+            {
+                return @"|";
+            }
         }
+    }
+
+    public static double DegreeToRadian(double degree)
+    {
+        const double pi = System.Math.PI;
+        return degree * pi / 180.0;
     }
 }
 
