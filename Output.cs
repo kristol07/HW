@@ -8,27 +8,35 @@ namespace WellTrajectoryPlot
     public class OutputData
     {
 
-        public static void PrintFileAsTxt(string filePath, string[,] graph)
+        public static int PrintFileAsTxt(string filePath, string[,] graph)
         {
-            StreamWriter writer = new StreamWriter(new FileStream(filePath, FileMode.Create, FileAccess.Write));
-            for (int i = 0; i < graph.GetLength(0); i = i + 1)
+            try
             {
-
-                for (int j = 0; j < graph.GetLength(1); j = j + 1)
+                StreamWriter writer = new StreamWriter(new FileStream(filePath, FileMode.Create, FileAccess.Write));
+                for (int i = 0; i < graph.GetLength(0); i = i + 1)
                 {
-                    if (graph[i, j] == null)
+                    for (int j = 0; j < graph.GetLength(1); j = j + 1)
                     {
-                        writer.Write(" ");
+                        if (graph[i, j] == null)
+                        {
+                            writer.Write(" ");
+                        }
+                        else
+                        {
+                            writer.Write(graph[i, j]);
+                        }
                     }
-                    else
-                    {
-                        writer.Write(graph[i, j]);
-                    }
+                    writer.Write("\r\n");
                 }
-                writer.Write("\r\n");
+                writer.Flush();
+                writer.Close();
+                return 0;
             }
-            writer.Flush();
-            writer.Close();
+            catch
+            {
+                return -1;
+            }
+
         }
     }
 }

@@ -8,17 +8,15 @@ namespace WellTrajectoryPlot
 {
     public class ImportData
     {
-        public static WellPointAndTrajectory ReadFile(string filePath)
+        public static int ReadFile(string filePath, WellPointAndTrajectory myWell)
         {
-            WellPointAndTrajectory myWell = new WellPointAndTrajectory();
-            List<double> myWellPointX = new List<double>();
-            List<double> myWellPointY = new List<double>();
-            List<double> myWellPointZ = new List<double>();
-
             try
             {
                 using (StreamReader myStreamReader = new StreamReader(filePath))
                 {
+                    DistanceUnit unit;
+                    Enum.TryParse(myStreamReader.ReadLine(), out unit);
+
                     String[] onePoint;
                     while (!myStreamReader.EndOfStream)
                     {
@@ -26,22 +24,23 @@ namespace WellTrajectoryPlot
                         double myX = Double.Parse(onePoint[0]);
                         double myY = Double.Parse(onePoint[1]);
                         double myZ = Double.Parse(onePoint[2]);
-
-                        myWellPointX.Add(myX);
-                        myWellPointY.Add(myY);
-                        myWellPointZ.Add(myZ);
+                        myWell.AddPoint(myX, myY, myZ, unit);
                     }
-                }
-                myWell.WellPointX = myWellPointX;
-                myWell.WellPointY = myWellPointY;
-                myWell.WellPointZ = myWellPointZ;
 
-                return myWell;
+                    return 0;
+                }
             }
             catch (IOException)
             {
-                Console.WriteLine("Import Failed! The file includes empty entry.");
-                return null;
+                return 1;
+            }
+            catch (ArgumentException)
+            {
+                return -1;
+            }
+            catch
+            {
+                return -2;
             }
         }
     }

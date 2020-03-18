@@ -8,55 +8,13 @@ namespace WellTrajectoryPlot
 {
     public class Plot
     {
-        public static void InitializeAndPlotGraph(WellPointAndTrajectory myWell, string viewName, int width, int height, string filePath, string unit)
+        public static string[,] InitGraph(int width, int height)
         {
-            int[] adjustedWellPointHorizonal = { }, adjustedWellPointVertical = { };
-            List<double> WellPointHorizonal = new List<double>(), WellPointVertical = new List<double>();
 
-            if (unit == "feet")
-            {
-                myWell.WellPointX = MeterToFeetTransmitor(myWell.WellPointX);
-                myWell.WellPointY = MeterToFeetTransmitor(myWell.WellPointY);
-                myWell.WellPointZ = MeterToFeetTransmitor(myWell.WellPointZ);
-            }
+            int reservedSpace = 300;
+            string[,] initGraph = new string[height + reservedSpace, width + reservedSpace];
 
-            switch (viewName)
-            {
-                //XZ
-                case "FrontViewXZ":
-                    WellPointHorizonal = myWell[0].ToList();
-                    WellPointVertical = myWell[2].ToList();
-
-                    break;
-                //yz
-                case "EndViewYZ":
-                    WellPointHorizonal = myWell[1].ToList();
-                    WellPointVertical = myWell[2].ToList();
-                    break;
-                //xy
-                case "VerticleViewXY":
-                    WellPointHorizonal = myWell[0].ToList();
-                    WellPointVertical = myWell[1].ToList();
-                    break;
-            }
-
-            adjustedWellPointHorizonal = ResizePointToFitPlot(WellPointHorizonal, width);
-            adjustedWellPointVertical = ResizePointToFitPlot(WellPointVertical, height);
-
-            myWell.WellTrajectoryGraph = PlotWellTrajectory(adjustedWellPointHorizonal, adjustedWellPointVertical, WellPointHorizonal, WellPointVertical, width, height);
-
-            AddCoordinateNotationForLineNode(adjustedWellPointHorizonal, adjustedWellPointVertical, myWell);
-
-            OutputData.PrintFileAsTxt(filePath, myWell.WellTrajectoryGraph);
-        }
-
-        public static List<double> MeterToFeetTransmitor(List<double> point)
-        {
-            for (int i = 0; i < point.Count; i++)
-            {
-                point[i] = point[i] * 3.2808;
-            }
-            return point;
+            return initGraph;
         }
 
         public static int[] ResizePointToFitPlot(List<double> pointToResize, int range)
@@ -72,39 +30,72 @@ namespace WellTrajectoryPlot
             return resizedPoint;
         }
 
-        public static int GetLineNodeIndexWithLargestCurvity(List<double> coordinateX, List<double> coordinateY)
+        public static List<int[]> RizeLinePointToFitPlot(string view, int width, int height, WellPointAndTrajectory myWell)
         {
+            int xIndex = -1, yIndex = -1;
 
-            List<double> slopes = new List<double>();
-            int result = 0;
-            double maxCurvity = Math.PI;
-
-            for (int i = 1; i < coordinateX.Count - 1; i++)
+            switch (view)
             {
-                double side1 = Math.Sqrt(Math.Pow(coordinateX[i] - coordinateX[i - 1], 2) + Math.Pow(coordinateY[i] - coordinateY[i - 1], 2));
-                double side2 = Math.Sqrt(Math.Pow(coordinateX[i] - coordinateX[i + 1], 2) + Math.Pow(coordinateY[i] - coordinateY[i + 1], 2));
-
-                if (side1 == 0 || side2 == 0)
-                {
-                    continue;
-                }
-
-                double side3 = Math.Sqrt(Math.Pow(coordinateX[i - 1] - coordinateX[i + 1], 2) + Math.Pow(coordinateY[i - 1] - coordinateY[i + 1], 2));
-
-                double cosPoint = Math.Acos((Math.Pow(side1, 2) + Math.Pow(side2, 2) - Math.Pow(side3, 2)) / (2 * side1 * side2));
-
-                // Console.WriteLine("{0}: {1} {2} {3} {4} | {5}", i, side1, side2, side3, (side1 + side2 == side3), cosPoint);
-
-                if (cosPoint <= maxCurvity)
-                {
-                    result = i;
-                    maxCurvity = cosPoint;
-                }
+                case "FrontViewXZ":
+                    xIndex = 0;
+                    yIndex = 2;
+                    break;
+                case "EndViewYZ":
+                    xIndex = 1;
+                    yIndex = 2;
+                    break;
+                case "VerticleViewXY":
+                    xIndex = 0;
+                    yIndex = 1;
+                    break;
             }
 
-            // Console.WriteLine(result);
+            List<double> WellPointHorizonal = myWell[xIndex];
+            List<double> WellPointVertical = myWell[yIndex];
 
-            return result;
+            int[] myX = ResizePointToFitPlot(WellPointHorizonal, width);
+            int[] myY = ResizePointToFitPlot(WellPointVertical, height);
+
+            List<int[]> rizeLine = new List<int[]>();
+            rizeLine.Add(myX);
+            rizeLine.Add(myY);
+
+            return rizeLine;
+
+        }
+
+        public static void PlotWellTrajectory(string view, WellPointAndTrajectory myWell, int width, int height)
+        {
+
+            string[,] graph = InitGraph(width, height);
+
+            List<int[]> rizeLine = RizeLinePointToFitPlot(view, width, height, myWell);
+            int[] myX = rizeLine[0];
+            int[] myY = rizeLine[1];
+
+            List<int> indexWithLargestCurvity = myWell.GetLineNodeIndexWithLargestCurvity();
+
+            for (int i = 1; i < myY.Length; i = i + 1)
+            {
+                int indexX = myX[i];
+                int indexY = myY[i];
+                if (graph[indexY, indexX] == null)
+                {
+                    graph[indexY, indexX] = "+";
+                }
+                ConnectingWellPoint(ref graph, myX[i - 1], myY[i - 1], indexX, indexY);
+            }
+
+            graph[myY[0], myX[0]] = @"=";
+            graph[myY[myY.Length - 1], myX[myY.Length - 1]] = @"#";
+            foreach (var i in indexWithLargestCurvity)
+            {
+                graph[myY[i], myX[i]] = @"o";
+            }
+
+            myWell.WellTrajectoryGraph = graph;
+
+            AddCoordinateNotationForLineNode(myX, myY, myWell);
         }
 
         public static void AddCoordinateNotationForLineNode(int[] myX, int[] myY, WellPointAndTrajectory myWell)
@@ -113,7 +104,7 @@ namespace WellTrajectoryPlot
 
             for (int i = 0; i < myX.Length; i++)
             {
-                string coordinate = "(" + Math.Round(myWell[0][i]) + "," + Math.Round(myWell[1][i]) + "," + Math.Round(myWell[2][i]) + ")";
+                string coordinate = "(" + Math.Round(myWell[0][i], 1) + "," + Math.Round(myWell[1][i], 1) + "," + Math.Round(myWell[2][i], 1) + ")";
                 int indexOfCoordinateY = myY[i] + 1;
                 int indexOfCoordinateX = myX[i];
 
@@ -126,34 +117,6 @@ namespace WellTrajectoryPlot
 
             myWell.WellTrajectoryGraph = graph;
         }
-
-        public static string[,] PlotWellTrajectory(int[] myX, int[] myY, List<double> WellPointHorizonal, List<double> WellPointVertical, int width, int height)
-        {
-            int reservedSpace = 300;
-            string[,] graph = new string[height + reservedSpace, width + reservedSpace];
-
-            int indexToLabelo = GetLineNodeIndexWithLargestCurvity(WellPointHorizonal, WellPointVertical);
-
-            for (int i = 1; i < myY.Length; i = i + 1)
-            {
-                int indexX = myX[i];
-                int indexY = myY[i];
-                if (graph[indexY, indexX] == null)
-                {
-                    graph[indexY, indexX] = "+";
-                }
-                ConnectingWellPoint(ref graph, myX[i - 1], myY[i - 1], indexX, indexY);
-
-            }
-
-            graph[myY[0], myX[0]] = @"=";
-            graph[myY[myY.Length - 1], myX[myY.Length - 1]] = @"#";
-            graph[myY[indexToLabelo], myX[indexToLabelo]] = @"o";
-
-            return graph;
-
-        }
-
 
         public static void ConnectingWellPoint(ref string[,] graph, int indexX, int indexY, int indexNextX, int indexNextY)
         {
