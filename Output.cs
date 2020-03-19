@@ -12,30 +12,29 @@ namespace WellTrajectoryPlot
         {
             try
             {
-                StreamWriter writer = new StreamWriter(new FileStream(filePath, FileMode.Create, FileAccess.Write));
-                for (int i = 0; i < graph.GetLength(0); i = i + 1)
+                using (StreamWriter writer = new StreamWriter(filePath))
                 {
-                    for (int j = 0; j < graph.GetLength(1); j = j + 1)
+                    for (int i = 0; i < graph.GetLength(0); i = i + 1)
                     {
-                        if (graph[i, j] == null)
-                        {
-                            writer.Write(" ");
-                        }
-                        else
+                        for (int j = 0; j < graph.GetLength(1); j = j + 1)
                         {
                             writer.Write(graph[i, j]);
                         }
+                        writer.Write("\r\n");
                     }
-                    writer.Write("\r\n");
+                    return 0;
                 }
-                writer.Flush();
-                writer.Close();
-                return 0;
+
             }
             catch
             {
                 return -1;
             }
+
+            // The following conditions may cause an exception:
+            //     - The file exists and is read-only.
+            //     - The path name may be too long.
+            //     - The disk may be full.
 
         }
     }

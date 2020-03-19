@@ -13,10 +13,10 @@ namespace WellTrajectoryPlot
                     Console.WriteLine("Read file {0} successfully...", filePath);
                     break;
                 case 1:
-                    Console.WriteLine("Import Failed! The file {0} includes empty entry.", filePath);
+                    Console.WriteLine("Point data loss in some lines");
                     break;
                 case -1:
-                    Console.WriteLine("Unit unrecognized.");
+                    Console.WriteLine("Data parse error: unit / point data");
                     break;
                 case -2:
                     Console.WriteLine("Read error for {0}", filePath);
@@ -45,11 +45,11 @@ namespace WellTrajectoryPlot
                 WellPointAndTrajectory myWell = new WellPointAndTrajectory();
                 string importFilePath = "data/" + i + ".csv";
 
-                int readResult = ImportData.ReadFile(importFilePath, myWell);
-                ConsoleOutputForReadingProcess(readResult, importFilePath);
-                if (readResult != 0)
+                myWell = ImportData.ReadFile(importFilePath);
+                if(myWell == null)
                 {
-                    return;
+                    Console.WriteLine("Reading data from file failed.");
+                    continue;
                 }
 
                 DistanceUnit unit = DistanceUnit.Feet;
@@ -57,11 +57,13 @@ namespace WellTrajectoryPlot
 
                 foreach (string view in pointOfView)
                 {
+                    
                     int width = 150, height = 200;
-                    Plot.PlotWellTrajectory(view, newWell, width, height);
+                    Plot myPlot = new Plot(width, height);
+                    myPlot.PlotWellTrajectory(view, newWell);
 
                     string outputFilePath = "data/" + i + "-" + view + ".txt";
-                    int saveResult = OutputData.PrintFileAsTxt(outputFilePath, newWell.WellTrajectoryGraph);
+                    int saveResult = OutputData.PrintFileAsTxt(outputFilePath, myPlot.Graph);
                     ConsoleOutputForSavingProcess(saveResult, view);
                 }
             }

@@ -8,16 +8,40 @@ namespace WellTrajectoryPlot
 {
     public class Plot
     {
-        public static string[,] InitGraph(int width, int height)
+        public const double DegreeToRadian = Math.PI / 180.0;
+
+        public string[,] Graph
         {
-
-            int reservedSpace = 300;
-            string[,] initGraph = new string[height + reservedSpace, width + reservedSpace];
-
-            return initGraph;
+            get; set;
         }
 
-        public static int[] ResizePointToFitPlot(List<double> pointToResize, int range)
+        public int Width
+        {
+            get;
+        }
+
+        public int Height
+        {
+            get;
+        }
+
+        public Plot(int width, int height)
+        {
+            int reservedSpace = 300;
+            Graph = new string[height + reservedSpace, width + reservedSpace];
+            for (int i = 0; i < height + reservedSpace; i++)
+            {
+                for (int j = 0; j < width + reservedSpace; j++)
+                {
+                    Graph[i, j] = " ";
+                }
+            }
+
+            this.Width = width;
+            this.Height = height;
+        }
+
+        public int[] ResizePointToFitPlot(List<double> pointToResize, int range)
         {
             double minValue = pointToResize.Min();
             double maxValue = pointToResize.Max();
@@ -30,7 +54,7 @@ namespace WellTrajectoryPlot
             return resizedPoint;
         }
 
-        public static List<int[]> RizeLinePointToFitPlot(string view, int width, int height, WellPointAndTrajectory myWell)
+        public List<int[]> RizeLinePointToFitPlot(string view, WellPointAndTrajectory myWell)
         {
             int xIndex = -1, yIndex = -1;
 
@@ -50,26 +74,19 @@ namespace WellTrajectoryPlot
                     break;
             }
 
-            List<double> WellPointHorizonal = myWell[xIndex];
-            List<double> WellPointVertical = myWell[yIndex];
-
-            int[] myX = ResizePointToFitPlot(WellPointHorizonal, width);
-            int[] myY = ResizePointToFitPlot(WellPointVertical, height);
+            int[] myX = ResizePointToFitPlot(myWell[xIndex], Width);
+            int[] myY = ResizePointToFitPlot(myWell[yIndex], Height);
 
             List<int[]> rizeLine = new List<int[]>();
             rizeLine.Add(myX);
             rizeLine.Add(myY);
 
             return rizeLine;
-
         }
 
-        public static void PlotWellTrajectory(string view, WellPointAndTrajectory myWell, int width, int height)
+        public void PlotWellTrajectory(string view, WellPointAndTrajectory myWell)
         {
-
-            string[,] graph = InitGraph(width, height);
-
-            List<int[]> rizeLine = RizeLinePointToFitPlot(view, width, height, myWell);
+            List<int[]> rizeLine = RizeLinePointToFitPlot(view, myWell);
             int[] myX = rizeLine[0];
             int[] myY = rizeLine[1];
 
@@ -77,31 +94,25 @@ namespace WellTrajectoryPlot
 
             for (int i = 1; i < myY.Length; i = i + 1)
             {
-                int indexX = myX[i];
-                int indexY = myY[i];
-                if (graph[indexY, indexX] == null)
+                if (Graph[myY[i], myX[i]] == " ")
                 {
-                    graph[indexY, indexX] = "+";
+                    Graph[myY[i], myX[i]] = "+";
                 }
-                ConnectingWellPoint(ref graph, myX[i - 1], myY[i - 1], indexX, indexY);
+                ConnectingWellPoint(myX[i - 1], myY[i - 1], myX[i], myY[i]);
             }
 
-            graph[myY[0], myX[0]] = @"=";
-            graph[myY[myY.Length - 1], myX[myY.Length - 1]] = @"#";
+            Graph[myY[0], myX[0]] = @"=";
+            Graph[myY[^1], myX[^1]] = @"#";
             foreach (var i in indexWithLargestCurvity)
             {
-                graph[myY[i], myX[i]] = @"o";
+                Graph[myY[i], myX[i]] = @"o";
             }
-
-            myWell.WellTrajectoryGraph = graph;
 
             AddCoordinateNotationForLineNode(myX, myY, myWell);
         }
 
-        public static void AddCoordinateNotationForLineNode(int[] myX, int[] myY, WellPointAndTrajectory myWell)
+        public void AddCoordinateNotationForLineNode(int[] myX, int[] myY, WellPointAndTrajectory myWell)
         {
-            string[,] graph = myWell.WellTrajectoryGraph;
-
             for (int i = 0; i < myX.Length; i++)
             {
                 string coordinate = "(" + Math.Round(myWell[0][i], 1) + "," + Math.Round(myWell[1][i], 1) + "," + Math.Round(myWell[2][i], 1) + ")";
@@ -110,15 +121,13 @@ namespace WellTrajectoryPlot
 
                 foreach (char item in coordinate)
                 {
-                    graph[indexOfCoordinateY, indexOfCoordinateX] = item.ToString();
+                    Graph[indexOfCoordinateY, indexOfCoordinateX] = item.ToString();
                     indexOfCoordinateX = indexOfCoordinateX + 1;
                 }
             }
-
-            myWell.WellTrajectoryGraph = graph;
         }
 
-        public static void ConnectingWellPoint(ref string[,] graph, int indexX, int indexY, int indexNextX, int indexNextY)
+        public void ConnectingWellPoint(int indexX, int indexY, int indexNextX, int indexNextY)
         {
 
             double differenceinX = indexNextX - indexX;
@@ -127,9 +136,9 @@ namespace WellTrajectoryPlot
             {
                 for (int i = Math.Min(indexY, indexNextY) + 1; i < Math.Max(indexY, indexNextY); i = i + 1)
                 {
-                    if (graph[i, indexX] == null)
+                    if (Graph[i, indexX] == " ")
                     {
-                        graph[i, indexX] = @"|";
+                        Graph[i, indexX] = @"|";
                     }
                 }
             }
@@ -137,9 +146,9 @@ namespace WellTrajectoryPlot
             {
                 for (int i = Math.Min(indexX, indexNextX) + 1; i < Math.Max(indexNextX, indexX); i = i + 1)
                 {
-                    if (graph[indexY, i] == null)
+                    if (Graph[indexY, i] == " ")
                     {
-                        graph[indexY, i] = @"-";
+                        Graph[indexY, i] = @"-";
                     }
                 }
             }
@@ -159,9 +168,9 @@ namespace WellTrajectoryPlot
                 for (int i = indexX + 1; i < indexNextX; i = i + 1)
                 {
                     updateIndex = CalculateIndexThroughSlope(slope, i - indexX, indexY);
-                    if (graph[updateIndex, i] == null)
+                    if (Graph[updateIndex, i] == " ")
                     {
-                        graph[updateIndex, i] = ChooseSymbol(slope);
+                        Graph[updateIndex, i] = ChooseSymbol(slope);
                     }
                 }
             }
@@ -181,27 +190,27 @@ namespace WellTrajectoryPlot
                 for (int i = indexY + 1; i < indexNextY; i = i + 1)
                 {
                     updateIndex = CalculateIndexThroughSlope(slope, i - indexY, indexX);
-                    if (graph[i, updateIndex] == null)
+                    if (Graph[i, updateIndex] == " ")
                     {
-                        graph[i, updateIndex] = ChooseSymbol(1 / slope);
+                        Graph[i, updateIndex] = ChooseSymbol(1 / slope);
                     }
                 }
 
             }
         }
 
-        public static int CalculateIndexThroughSlope(double slope, double difference, int baseIndex)
+        public int CalculateIndexThroughSlope(double slope, double difference, int baseIndex)
         {
             return (int)Math.Round(difference * slope + baseIndex, MidpointRounding.AwayFromZero);
         }
 
-        public static string ChooseSymbol(double slope)
+        public string ChooseSymbol(double slope)
         {
 
-            double tangent10Degree = Math.Tan(DegreeToRadian(10));
-            double tangent80Degree = Math.Tan(DegreeToRadian(80));
-            double tangent100Degree = Math.Tan(DegreeToRadian(100));
-            double tangent170Degree = Math.Tan(DegreeToRadian(170));
+            double tangent10Degree = Math.Tan(DegreeToRadian * 10);
+            double tangent80Degree = Math.Tan(DegreeToRadian * 80);
+            double tangent100Degree = Math.Tan(DegreeToRadian * 100);
+            double tangent170Degree = Math.Tan(DegreeToRadian * 170);
 
             if (slope > 0)
             {
@@ -235,15 +244,7 @@ namespace WellTrajectoryPlot
             }
         }
 
-        public static double DegreeToRadian(double degree)
-        {
-            const double pi = System.Math.PI;
-            return degree * pi / 180.0;
-        }
     }
-
-
-
 }
 
 

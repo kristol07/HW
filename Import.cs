@@ -8,39 +8,54 @@ namespace WellTrajectoryPlot
 {
     public class ImportData
     {
-        public static int ReadFile(string filePath, WellPointAndTrajectory myWell)
+        public static WellPointAndTrajectory ReadFile(string filePath)
         {
             try
             {
-                using (StreamReader myStreamReader = new StreamReader(filePath))
+                using (StreamReader myStreamReader = new StreamReader(filePath)) // filepath invalid
                 {
+                    WellPointAndTrajectory myWell = new WellPointAndTrajectory();
                     DistanceUnit unit;
-                    Enum.TryParse(myStreamReader.ReadLine(), out unit);
+                    bool parsingResult = Enum.TryParse(myStreamReader.ReadLine(), out unit);
+                    if(parsingResult == false)
+                    {
+                        Console.WriteLine("Unit unrecognized. Check first line in the file");
+                        return null;
+                    }
 
                     String[] onePoint;
                     while (!myStreamReader.EndOfStream)
                     {
                         onePoint = myStreamReader.ReadLine().Split(',');
-                        double myX = Double.Parse(onePoint[0]);
+                        double myX = Double.Parse(onePoint[0]);  // parse error
                         double myY = Double.Parse(onePoint[1]);
-                        double myZ = Double.Parse(onePoint[2]);
+                        double myZ = Double.Parse(onePoint[2]);  // index error if data loss
                         myWell.AddPoint(myX, myY, myZ, unit);
                     }
 
-                    return 0;
+                    return myWell;
                 }
             }
-            catch (IOException)
+            catch (FileNotFoundException ex)
             {
-                return 1;
+                // throw new FileNotFoundException($"Invalid filepath, no such file found.", ex);
+                Console.WriteLine($"Invalid filepath, no such file found.\n{ex.ToString()}");
+                return null;
             }
-            catch (ArgumentException)
+            catch (IndexOutOfRangeException ex)
             {
-                return -1;
+                Console.WriteLine($"Point data loss, check each line has 3 coordinates.\n{ex.ToString()}");
+                return null;
             }
-            catch
+            catch (FormatException ex)
             {
-                return -2;
+                Console.WriteLine($"Point data parse error, check that all are double values.\n{ex.ToString()}");
+                return null;
+            }
+            catch(IOException ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return null;
             }
         }
     }
